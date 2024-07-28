@@ -2,10 +2,11 @@ package com.example.demo.student;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDate;
-import java.time.Month;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
 // component allows for IoC, for the StudentController to automatically instantiate it
@@ -46,5 +47,46 @@ public class StudentService {
             throw new IllegalStateException("student with id " + studentId + " does not exists");
         }
         studentRepository.deleteById(studentId);
+    }
+
+    // transactional is used so don't have to use jpql query, so can use the setters in the Entity to check whether can or cannot update
+    // use setters to automatically update the Entity when possible
+    // will make the entity go into a managed state
+    @Transactional
+    public void updateStudent(Long studentId, String name, String email) {
+        Student student = studentRepository.findById(studentId)
+                .orElseThrow(() -> new IllegalStateException("student with id " + studentId + " does not exists"));
+
+        // update name if certain conditions are met
+        if (
+                name != null &&
+                name.length() > 0 &&
+                !Objects.equals(student.getName(), name)
+        ) {
+            student.setName(name);
+        }
+        // update email if certain conditions are met + email not taken
+        if (
+                email != null &&
+                email.length() > 0 &&
+                !Objects.equals(student.getEmail(), email)
+        ) {
+            Optional<Student> studentOptional = studentRepository.findStudentByEmail(email);
+
+            // checks if email already in database
+            if (studentOptional.isPresent()) {
+                throw new IllegalStateException("email taken");
+            }
+            student.setEmail(email);
+        }
+
+//        String newName = updateParams.get("name");
+//        if (newName != null) {
+//            System.out.println(newName);
+//        }
+//        String newEmail = updateParams.get("email");
+//        if (newEmail != null) {
+//            System.out.println(newEmail);
+//        }
     }
 }
